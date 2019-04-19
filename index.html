@@ -2,46 +2,271 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>President Aoun is an Alien</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <style>
+        body {
+      width: 900px;
+      margin: 0 auto;
+      padding: 0 20px 20px 20px;
+      border: 5px solid lightgray;
+    }
 
-    <link href="https://fonts.googleapis.com/css?family=Arimo" rel="stylesheet">
+    table, th, td {
+  border: 1px solid black;
+}
+
+    </style>
+    <title>White Box Black Box</title>
+
+
+    <!-- <link href="https://fonts.googleapis.com/css?family=Arimo" rel="stylesheet">
 
     <link href="styles/style.css" rel="stylesheet" type="text/css">
-
+ -->
   </head>
   <body>
-  	<h1>President Aoun is an Alien</h1>
+  	<center><h1>White Boxing a Black Box: How Does VGG Learn</h1>
+    <br>
+    <h4>Ibrahim Taher and Pallavi Kolambkar</h4>
+    </center>
 
-    <img src="images/firefox2.png" alt="A Great Browser">
+    <h2>Motivation</h2>
+
+    <p>
+    State of the art accuracy in several domains can be achieved by leverage deep learning techniques such as convolutional neural networks. These algorithms can thrive in the big data age due to the volume of data that exists for these problems. While deep learning is widely accepted in academia, industry professionals tend to be skeptical of how it works due to its black box nature. While there is consistent research to develop better neural models, the research for white boxing these black boxes is considered sparse at best. This project aims to white box these black boxes through the use of clustering. By leverage representative information about each cluster, it is possible that learned information at intermediate layers can be exposed to the user in an interpretable manner. This technique is used for the classic image classification problem by leveraging the outputs of VGG19 intermediate max pooling layers and clustering those outputs using K-Means.
+    </p>
+
+    <h2>Data Analysis</h2>
+
+    <p>To train the model we used the CalTech 256 Object Categories Dataset. The dataset contains 256 object categories containing around 30,607 images. The images were collected by choosing a set of object categories, downloading examples from Google Images and then manually screening out all images that did not fit the category.</p> 
+    
+    <center>
+    <img src='images/classimb.png'>
+    <br>
+     <small><b>Figue 1.</b> Distribution of Class Sizes</small>
+    </center>
+    <br>
 
 
-    <p>Everyone get's the emails from President Aoun about the inevitable robot takeover. When I was a child, I watched Iron Giant and believed that robots were our friends. Aoun is trying to convince us otherwise.</p>
+    <p>The images in one class have considerably different representations making it difficult to cluster them directly just based on the outline of the images. An example is shown below. The two images are of the American Flag, yet looking at the images it might be difficult to understand what the class of the second image might be. While there is an American Flag, a majority of the image is in fact a building.</p>
 
-    <h4>But aliens aren't real...that's what he wants you to think</h4>
+    <center>
+        <img src='images/002_0007.jpg' width="20%">
+        <img src='images/002_0066.jpg' width="20%">
+        <br>
+        <small><b>Figure 2.</b> Two images from the class American Flag.</small>
+    </center>
 
-    <p>This website's purpose is to declare that Aoun is an alien. The reddit hivemind has touched on it, now its time to really open your eyes. Much like the 'Philly Special', Aoun is trying to make us believe that robots are the real problem. What he doesn't want you to know is that he is in fact an alien. No, not the guys south of the border that POTUS wants you to think are going to kill your children.</p>
+    <center>
+    <table style="width:50%">
 
-    <p>President Aoun</p>
+          <tr>
+    <th><b>Measure</b></th>
+    <th><b>Value</b></th>
 
-    <ul>
-    	<li><strong>IS</strong> From Outer Space</li>
-    	<li><STRONG>LIVES</STRONG> in a Flying Saucer</li>
-    	<li><STRONG>HATES</STRONG> robots</li>
-    	<li><STRONG>WANTS</STRONG> your money.
-    </ul>
+  </tr>
+  <tr>
+    <td>Mean</td>
+    <td>119.09</td>
 
-    <p>He also wants your money. Not to make Marino better, but to prepare for the alient hostile takeover.</p>
+  </tr>
+  <tr>
+    <td>Median</td>
+    <td>100</td>
+  </tr>
 
-    <ul>
-    	<li>Take notice</li>
-    	<li>Be prepared</li>
-    	<li>Eat your vegetables (I've been eating three servings of spinach a day, it's wild.)</li>
-    </ul> 
+  <tr>
+    <td>Max</td>
+    <td>827</td>
+  </tr>
 
-    <button>Question though</button>
+  <tr>
+    <td>Min</td>
+    <td>80</td>
+</tr>
 
-    <p><small>This is no way supported by <a href="https://www.northeastern.edu/">Northeastern</a>, it's alumni network or faculty. There is no evidence to support that Aoun is in fact an alien. However, there also is no evidence that he is not.</small>
+<tr>
+    <td>Standard Dev</td>
+    <td>85.69</td>
+</tr>
+    </table>
+    <br>
+<small><b>Figure 3.</b> Summary Statistics for CalTech Dataset</small>
+    </center>
 
-	<script src="scripts/main.js"></script>
+    <p>As seen from the table there is class imbalance in the dataset. The range of images in a class varies from a minimum of 80 to a maximum of 827. This makes it difficult to distribute the class into clusters since there are few data points available.</p> 
+
+    <h2>Model Methodology</h2>
+
+    <p>The model chosen was VGG19. VGG19 is a deep convolutional neural network that has 19 weight layers (16 convolutional layers and 3 fully connected layers.) It performed very well on the ILSVRC challenge, achieving a top-5 test error of 6.8%. The model has a few differences from previous winners and other high performing entries. First, previous models such as AlexNet relied on larger convolution filter windows for its first convolution layer (11x11 kernels with stride 4.) VGG uses 3x3 convolution kernel sizes to iterate over the inputs. What does this allow for? By stacking several 3x3 convolution filters, the architecture also allows for more non-linear transformations than its shallower counterparts. Furthermore, using smaller convolution windows reduces the number of parameters that are involved in the model.</p>
+
+    <center>
+        <img src='images/vgg19.jpg' width="60%">
+        <br>
+        <small><b>Figure 4.</b> VGG 19 Architecture. There are 16 trainable convolution layers and 3 trainable fully connected layers.</small>
+    </center>
+    <br>
+
+    <p>In order to prepare VGG for this project, the first step was to transfer learn VGG for the CalTech 256 Object Categories Dataset. The transfer learning was done using pretrained weights from a model trained on ImageNet. This reduces the chance of overfitting, thereby creating a model is generalizable and quick to train. First, all trainable layers that were not fully connected layers were frozen so that their parameters were not updated. Then, the fully connected layers were updated to work with CalTech dataset. For example, the final fully connected layer had its outputs changed to be 256, the number of classes for this particular dataset. The fully connected layers were not frozen and it was their weights that were updated during the transfer learning process. When the images are loaded for analysis the images are center cropped to be 224x224. They are also normalized to be consistent with the ImageNet dataest. The batch size that was given was the largest batch, 10, that allowed for the machine on which the model was trained.</p>
+
+    <p>The model was set up to train for 15 epochs with early stopping. Early stopping means that if the validation accuracy does not increase for a specified number of epochs then the model will stop the training process. Also the model created during the epoch with the best validation accuracy was saved. With this configuration, the transfer learning process took a total of 4 epochs and it achieved a top-1 accuracy of 70%.</p>
+
+    <p>In order to learn how VGG learns, clustering was employed to represent intermediate layer outputs. Choosing the right clustering algorithm is important, as a good clustering configuration can segment the outputs such that the user can understand what the model is learning. Ideally, these clusters allow the user to recognize that up until a given layer the model learned an interpretable characteristic about the images (i.e. edges, color, saturation, orientation, etc.) . In order to test this, three clustering algorithms were chosen: HDBSCAN, K-Means and Agglomerative Clustering.</p>
+
+    <p>HDBSCAN is an algorithm that develops clusters based on density of points. It does not require the developer to preset the number of clusters. Rather, by using two hyperparameters, minimum cluster size and minimum samples, the algorithm defines what it means to be a cluster and dynamically develops clusters. It will also set certain points as noise, meaning they could not be associated with any cluster. Minimum cluster size tells the algorithm the number of points required to be a cluster. So if minimum cluster size is set to five, then it is possible for a cluster of five points to exist. Minimum samples define the number of neighboring points required for a point to be a candidate for any cluster. HDBSCAN performed poorly on our dataset. With conservative minimum cluster size of 5 and minimum samples of 5, the clustering algorithm created at most three clusters for chosen intermediate layers. What this resulted in was one large cluster followed by few very small clusters (n<10). The rest of the points were considered noise. These clusters did not provide much insight on how the model learned and therefore HDBSCAN was scrapped as a tool for clustering the data.</p>
+
+    <p>The second algorithm tested was Agglomerative Clustering. Agglomerative Clustering is a hierarchical clustering algorithm that follows a bottom up approach, meaning that each point starts as a singleton and added together to form clusters. In this project, Ward’s algorithm was chosen. Ward created an agglomerative clustering algorithm that attempted to minimize the sum of squares criterion. This allows for a nice comparison with K-Means, as K-Means also minimizes the sum of squares criterion. Minimizing the sum of squares criterion allows for minimizing the within group dispersion. The third algorithm that was tested was K-Means. Since this problem is considered NP-Hard, K-Means reduces this criterion by multiple random starts. Both K-Means and Agglomerative Clustering require a preset number of clusters.</p>
+
+    <p>Finding the right clusters can be considered a difficult problem. In fact, more often than not, the true clustering might not be findable in a finite time period. However, heuristics involving evaluating metrics at several different initializations of k, number of clusters, can help find a good number of clusters. For K-Means and Agglomerative clustering, the silhouette coefficient was used to identify the number of clusters. The silhouette coefficient is a measure to validate the correctness of clusters. It measures the correction by taken the difference of the distance of a point to the centroid of the cluster it belongs to, a(i), and the distance of a point to its nearest neighboring cluster, b(i). It divides this value by the maximum of a(i) and b(i). This value is calculated for all points in the data. A mean silhouette coefficient of 1 means the points are perfectly clustered and a value of -1 means the clusters are completely incorrect in terms of their clustering.</p>
+    <center>
+    <img src="images/layer4sc.png" width="30%">
+    <img src="images/layer9sc.png" width="30%">
+    <br>
+    <img src="images/layer18sc.png" width="30%">
+    <img src="images/layer27sc.png" width="30%">
+    <br>
+    <img src="images/layer36sc.png" width="30%">
+    <br>
+    <small><b>Figure 5.</b> Mean Silhouette Coefficient from k=2 to k=10 for K-Mean and Agglomerative Clustering</small>
+    </center>
+    <br>
+
+
+    <p>The silhouette coefficient was calculated for k=2 to k=10 for both K-Means and Agglomerative Clustering. K-Means outperformed Agglomerative Clustering at all values of k for all intermediate layers. For the purposes of this assignment k=4 was chosen as the number of clusters. This was because of the use case of this project. The clusters needed to display differences in learning of the algorithm at layers. Choosing k=2 would provide two large clusters that would not highlight differences in the intermediate representations. Four clusters for all intermediate layers acted as an elbow point and was considered the best number of clusters for this project.</p>
+
+
+    <h2>Cluster Analysis</h2>
+
+    <p>A goal of this project to understand underlying correlations when using convolutional neural networks. In order to keep this project interpretable, we looked at how the original images related to their clusters. We followed two procedures to try and uncover relationships. The first was looking at the top 10 classes in each cluster by its frequency. By using this method, we hoped to see relationships via the classes that existed in these clusters. For example, if we saw round objects (faces, coins, grapes, etc.) we might say that a given cluster corresponds to round objects. The second procedure was looking at the mean image of a cluster given the nearest points to the centroid. The threshold of 25 closest images was used to create these mean images. When looking at the mean image using the entire cluster, the images looked extremely smooth and did not have defining characteristics. At much lower thresholds (n=10) the mean image was just the ten closest images overlapped leading to little insight regarding the correlations within each cluster.</p>
+
+    <p>Regardless, the procedure to uncover patterns in the clusters proved to be unfruitful. The top 10 classes bar chart had images that were across the board and difficult to group. This can be attributed to how different each image within a class looks like to the other images.When looking at the mean image, even at the threshold of 25, more often than not no qualtitative pattern could be discovered. Some images still looked extremely smooth. However, some mean images showed a pattern that was in line with the top 10 classes that existed within a given cluster.</p>
+
+    <center>
+        <img src='images/cluster3top10l4.png' width="40%">
+        <img src='images/meanimagecluster3l4.png' width="40%">
+        <br>
+        <small><b>Figure 5.</b> <i>(Left)</i> The top 10 classes for cluster 3 in layer 4. <i>(Right)</i> The mean image for cluster 3 layer 4.</small>
+    </center>
+
+    <p>In figure 5, we see the mean image and top 10 classes for cluster 3 in the first max pool layer, layer 4. This specific cluster had easier patterns to identify. Looking at the mean image, we see a round object in the center. This is inline with the classes seen in the bar plot. The bar plot has classes like faces-easy-101, hibiscus, boom-box, coin and grapes, all of which have round aspects in their images.</p>
+
+    <center>
+        <img src='images/cluster1top10l9.png' width="40%">
+        <img src='images/meanimagecluster1l9.png' width="40%">
+        <br>
+        <small><b>Figure 6.</b> <i>(Left)</i> The top 10 classes for cluster 3 in layer 4. <i>(Right)</i> The mean image for cluster 3 layer 4.</small>
+    </center>
+
+    <p>In figure 6, we see the mean image and top 10 classes for cluster 1 in the second max pool layer, layer 9. This cluster did not have easy patterns to identify. The mean image does not surface any specific characteristics for the cluster. The top 10 classes are also not very similar. Airplanes-101, the majority class does not have any striking similarities to faces-easy-101. In a similar vein, car-side is also not very similar to the other top 10 most frequent classes.</p>
+
+    <h2>Task Abstraction</h2>
+    <center>
+    <table style="width:80%">
+        <tr>
+            <td width="5%"><b>ID</b></td>
+            <td><b>Domain Task</b></td>
+            <td><b>Analytical Task (Low)</b></td>
+            <td><b>Search Task (Mid)</b></td>
+            <td><b>Analyze Task (High)</b></td>
+        </tr>
+        <tr>
+            <td>1</td>
+            <td>What is the distribution of clusters for class ‘x’ in layer ‘i’?</td>
+            <td>Characterize distribution</td>
+            <td>Lookup</td>
+            <td>Discover</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>How does the distribution across clusters for class ‘x’ change over all layers</td>
+            <td>Characterize distribution</td>
+            <td>Browse</td>
+            <td>Discover</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>Name the top 5 neighboring classes of a point?</td>
+            <td>Find Extremum</td>
+            <td>Lookup</td>
+            <td>Discover</td>
+        </tr>
+    </table>
+    <small><b>Figure 6.</b> Task Analysis Table</small>
+</center>
+<br>
+
+    <p>
+        Our tasks largely revolve around using the scatter plot and bar plot to identify interesting relationships between points and the clusters/neighboring points. This tool is primarily an exploration tool so that individuals, both technical and non-technical, can learn about the model. Therefore all high level tasks can be considered a ‘discover’ task. Two of the three tasks identified can be answered by using the bar plot. Task 1 can be qualitatively solved using the scatterplot, by hovering on the bar corresponding to a class and see the rough distribution of points across all clusters. It can be better answered using the bar plot by clicking on the class and getting a bar plot that reflects the distribution of a class across all clusters. Task 2 is a similar task and can be solved by clicking the bars and seeing the distribution across each layer. What you would hope to see is classes become more homogenous in terms of the clusters they occupy. Finally, by clicking on any point in the scatter plot, a bar plot surfaces that will allow the user to see the top 5 neighboring classes of a point. This is a nearest neighbor search and can help give local understanding of how the model builds it’s non-linear decision boundaries for classes.
+    </p>
+
+    <h2>Initial Sketches</h2>
+    <br>
+    <center>
+        <img src='images/IMG_0588.jpg' width="30%" style="transform:rotate(90deg);">
+        <img src='images/IMG_0589.jpg' width="30%" style="transform:rotate(90deg);">
+        <br>
+        <br>
+        <br>
+
+        <small><b>Figure 7.</b> Initial sketches from first milestone.</small>
+    </center>
+    <br>
+
+
+    <p>Originally the project was heavily focused on using CNN embeddings to cluster images into individual groups. Our initial sketches reflect the distribution of clusters and the frequency distributions of classes for a particular cluster. The sketches above show a scatter plot where the user can click on a cluster and get information regarding that cluster. That would populate as a bar chart and maybe show what the clusters were learning.</p>
+
+    <center>
+        <img src='images/viz.png' width="70%">
+        <br>
+        <small><b>Figure 8.</b> Proper visualizations of analytics platform done in Python using seaborn.</small>
+    </center>
+    <br>
+
+
+    <p>This visualization persisted for our final sketches as well. At this point we had not visualized the model yet to see how the classes were distributed across the plane. So we used a similar visualization for our final sketches as well. In this new visualization, we introduced how the brushing and linking might work for our final visualization. The user could click on a given cluster and the bar graph showing the distribution of that cluster would populate on the right. We added interactivity to the scatterplot by showing the class and the filename on hovering a point. The graphs explained the distribution accurately using points and lines and hence were considered as the first choice for the visualization of the data. The colors used are merely for representation purposes.</p>
+
+    <h2>Final Visualization</h2>
+    <center>
+    <img src="images/barplot.jpg">
+    <br>
+    <small><b>Figure 9.</b> Snapshot of bar plot with accompanying cluster ditribution bar plot from analytics platform.</small>
+    </center>
+    <p>The final form of our visualization included far more interactivity than the previous versions. However, there were several differences in the basic design as well. First, rather than populating cluster distributions as our main visualization, a bar chart of the class frequency for all classes is populated. The main bar plot shows the first 8 highest frequency classes. A mini bar chart below the main bar chart shows all the 256 classes sorted in descending order. Scrolling through this bar chart will help to view all the classes and the point distribution amongst clusters of the respective class by highlighting the points on the scatterplot.  This bar chart allows us to highlight different clusters through a hover feature. This is how we implemented brushing and linking. The main bar chart could also be clicked on. By clicking on a bar, its cluster distribution would populate below the bar chart.</p>
+    <center>
+    <img src='images/scatterplot.jpg'>
+    <br>
+    <small><b>Figure 10.</b> Snapshot of scatterplot with accompany nearest neighbor bar plot from analytics platoform.</small>
+    </center>
+    <p>The scatter plot had zoom and panning features. At high zooms what the user sees is the overall shape of each cluster. As the user zooms in, individual points begin to appear. The user can use the bar chart to identify rough locations of classes in a distribution as hovering on an individual bar would reflect the points in the scatter graph and then zoom and pan until they get to their desired point. They can also click on a point in the scatter plot and the top 5 nearest neighbor classes will populate below the scatter plot. These visualizations highlight high level groupings of images at all max pool levels and their cluster distributions and the nearest neighbors of given points.</p>
+
+    <h2>Final Remarks</h2>
+
+    <p>We have implemented a platform that allows users to explore how outputs from VGG19's intermediate layers can be displayed in two dimensions. Through the use of our platform, the user can explore the individual data points and see how they relate to their nearest neighbors. The user can also see how the classes distribute across different clusters and how overall class behaviors persists or changes over time. With knowledge of how the original dataset was curated, the user can make inferences about the challenges VGG19 faces when classifying data. For example, the t-shirt class sample in the visualization does not become more homogenous as the data is transformed by the model. A quick glance at the dataset would show that these images are very different and that may be a reason as to why VGG19 does not create similar representations. Another reason that some of the classes do not become more homogenous is that the CalTech dataset is extremely imbalanced. In terms of modeling, the convolutional neural network has an easier time developing decision boundaries for classes with more samples compared to classes with less samples.</p>
+
+    <p>Future work will include translating this process to simpler datasets. For a dataset like Stanford Dogs, users might be able to identify different learning patterns in VGG. We were initially hesitant to cluster activation maps as they might not provide an interpretable understanding of how the model learns. However, given the challenge of identifying cluster characteristics, perhaps clustering activation maps would provide an interesting perspective on how ConvNets learn. Another interesting set of data to have surfaced for analysis would have been the actual true outputs from each layer. Using the real outputs from each max pool layer, we could have better seen how the model's transformations affected the outputs. The real outputs were the basis for the clustering so the similarities between the real outputs should be obvious. From a visualization standpoint, surfacing compressed representations at lower zooms could help users derive interesting insight for what the clusters might represent.</p>
+
+    <h2> Platform and Demo</h2>
+
+    The demo of our visualizations can be found in the video below:
+
+    <iframe width="560" height="315" src="https://www.youtube.com/embed/RxI9vKZ2pV8" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+    <br>
+    To access the demo click <a href="http://35.245.237.228:5000/">here</a>.
+
+    <h2>References</h2>
+
+    <ol>
+        <li>Griffin, Gregory and Holub, Alex and Perona, Pietro (2007) Caltech-256 Object Category Dataset. California Institute of Technology . (Unpublished) http://resolver.caltech.edu/CaltechAUTHORS:CNS-TR-2007-001</li>
+
+        <li>Simonyan, K. & Zisserman, A. (2014). Very Deep Convolutional Networks for Large-Scale Image Recognition. CoRR, abs/1409.1556.</li>
+
+        <li>Guérin, J., Gibaru, O., Thiery, S. & Nyiri, E. (2017). CNN features are also great at unsupervised classification.. CoRR, abs/1707.01700.</li>
+
+        <li>Pellegrini, T. & Mouysset, S. (2016). Inferring Phonemic Classes from CNN Activation Maps Using Clustering Techniques.. In N. Morgan (ed.), INTERSPEECH (p./pp. 1290-1294), : ISCA.</li>
+
+    </ol>
   </body>
 </html>
